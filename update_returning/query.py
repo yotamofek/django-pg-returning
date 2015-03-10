@@ -6,6 +6,8 @@ from django.db.models.sql import UpdateQuery
 from django.db.models.sql.compiler import SQLUpdateCompiler, SQLCompiler
 from django.db.models.sql.constants import MULTI
 from django.db import connections
+from django.db.transaction import atomic
+
 
 class SQLUpdateReturningCompiler(SQLUpdateCompiler):
     def as_sql(self):
@@ -66,20 +68,8 @@ class UpdateReturningMethods(object):
         query = self.query.clone(UpdateReturningQuery)
         query.add_update_values(kwargs)
         
-        if not transaction.is_managed(using=self.db):
-            transaction.enter_transaction_management(using=self.db)
-            forced_managed = True
-        else:
-            forced_managed = False
-        try:
+        with atomic():
             cursor = query.get_compiler(self.db).execute_sql(MULTI)
-            if forced_managed:
-                transaction.commit(using=self.db)
-            else:
-                transaction.commit_unless_managed(using=self.db)
-        finally:
-            if forced_managed:
-                transaction.leave_transaction_management(using=self.db)
 
         self._result_cache = None
 
