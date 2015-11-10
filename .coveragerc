@@ -1,0 +1,6 @@
+[run]
+source = pg_returning
+branch = 1
+
+[report]
+omit = *tests*
